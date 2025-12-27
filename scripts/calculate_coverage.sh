@@ -2,6 +2,8 @@
 
 set -e
 
+flutter test --coverage
+
 # Script to calculate coverage percentage excluding main.dart from lcov.info
 if [ ! -f coverage/lcov.info ]; then
   echo "Error: coverage/lcov.info does not exist. Run tests with coverage first."
