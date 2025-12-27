@@ -58,7 +58,7 @@ jobs:
             echo "✅ Coverage increased or unchanged: +${diff}%" >> $GITHUB_STEP_SUMMARY
           fi
 
-      # --- Update PR description ---
+      # --- Update PR description  ---
       - name: Update PR description with coverage
         if: ${{ github.event_name == 'pull_request' }}
         env:
