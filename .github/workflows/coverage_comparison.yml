@@ -3,7 +3,7 @@ name: Coverage Diff vs develop
 on:
   pull_request:
     branches:
-      - feature/**
+      - develop
 
 jobs:
   coverage-diff:
