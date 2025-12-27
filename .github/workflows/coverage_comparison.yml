@@ -57,3 +57,18 @@ jobs:
           else
             echo "✅ Coverage increased or unchanged: +${diff}%" >> $GITHUB_STEP_SUMMARY
           fi
+
+      # --- Update PR description ---
+      - name: Update PR description with coverage
+        if: ${{ github.event_name == 'pull_request' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # PR番号
+          PR_NUMBER=${{ github.event.pull_request.number }}
+
+          # ステップサマリーから内容を取得
+          SUMMARY=$(cat $GITHUB_STEP_SUMMARY)
+
+          # PRの概要欄に出力
+          gh pr edit $PR_NUMBER --body "$SUMMARY"
