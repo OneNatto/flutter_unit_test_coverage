@@ -61,6 +61,15 @@ jobs:
           else
             echo "✅ Coverage increased or unchanged: +${diff}%" >> $GITHUB_STEP_SUMMARY
           fi
+      - name: Dump GITHUB_STEP_SUMMARY
+        run: |
+          echo "===== GITHUB_STEP_SUMMARY ====="
+          if [ -f "$GITHUB_STEP_SUMMARY" ]; then
+            cat "$GITHUB_STEP_SUMMARY"
+          else
+            echo "GITHUB_STEP_SUMMARY does not exist"
+          fi
+          echo "=============================="
 
       # --- Update PR description  ---
       - name: Update PR description with coverage
@@ -72,4 +81,4 @@ jobs:
 
           cat "$GITHUB_STEP_SUMMARY" > pr_body.md
           
-          gh pr comment "$PR_NUMBER" --body-file pr_body.md
+          gh pr edit "$PR_NUMBER" --body-file pr_body.md
