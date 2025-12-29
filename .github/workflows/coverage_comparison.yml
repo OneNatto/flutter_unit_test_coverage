@@ -1,0 +1,84 @@
+name: Coverage Diff vs develop
+
+on:
+  pull_request:
+    branches:
+      - develop
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  coverage-diff:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout current branch
+        uses: actions/checkout@v3
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.0'
+
+      - name: Install lcov
+        run: sudo apt-get install -y lcov
+
+      # --- PR branch ---
+      - name: Calculate coverage (current branch)
+        run: ./scripts/calculate_coverage.sh > pr_coverage.txt
+
+      # --- develop ---
+      - name: Fetch develop
+        run: |
+          git fetch origin develop
+          git worktree add ../develop develop
+
+      - name: Calculate coverage (develop)
+        working-directory: ../develop
+        run: ./scripts/calculate_coverage.sh > develop_coverage.txt
+
+      # --- Compare ---
+      - name: Compare coverage
+        run: |
+          pr=$(grep 'Coverage:' pr_coverage.txt | sed 's/[^0-9.]//g')
+          develop=$(grep 'Coverage:' ../develop/develop_coverage.txt | sed 's/[^0-9.]//g')
+
+          diff=$(echo "$pr - $develop" | bc)
+
+          echo "### 📊 Coverage Diff" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Branch | Coverage |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|------|" >> $GITHUB_STEP_SUMMARY
+          echo "| develop | ${develop}% |" >> $GITHUB_STEP_SUMMARY
+          echo "| current | ${pr}% |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if (( $(echo "$diff < 0" | bc -l) )); then
+            echo "❌ Coverage decreased: ${diff}%" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          else
+            echo "✅ Coverage increased or unchanged: +${diff}%" >> $GITHUB_STEP_SUMMARY
+          fi
+      - name: Dump GITHUB_STEP_SUMMARY
+        run: |
+          echo "===== GITHUB_STEP_SUMMARY ====="
+          if [ -f "$GITHUB_STEP_SUMMARY" ]; then
+            cat "$GITHUB_STEP_SUMMARY"
+          else
+            echo "GITHUB_STEP_SUMMARY does not exist"
+          fi
+          echo "=============================="
+
+      # --- Update PR description  ---
+      - name: Update PR description with coverage
+        if: ${{ github.event_name == 'pull_request' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PR_NUMBER=${{ github.event.pull_request.number }}
+
+          cat "$GITHUB_STEP_SUMMARY" > pr_body.md
+          
+          gh pr edit "$PR_NUMBER" --body-file pr_body.md
